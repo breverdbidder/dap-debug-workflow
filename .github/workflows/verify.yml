@@ -1,0 +1,76 @@
+name: Verify DAP Fixes
+
+on:
+  push:
+    branches: [main]
+  schedule:
+    - cron: '0 5 * * *'  # Midnight EST = 5 AM UTC
+  workflow_dispatch:
+
+jobs:
+  verify-code:
+    name: Code Tests (13 tests)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: |
+          pip install httpx python-dotenv google-generativeai anthropic supabase
+
+      - name: Clone zonewise-scraper-v4
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_PAT }}
+        run: |
+          curl -sL -H "Authorization: token $GITHUB_TOKEN" \
+            "https://api.github.com/repos/breverdbidder/zonewise-scraper-v4/tarball/main" \
+            -o scraper.tar.gz
+          mkdir -p scraper-v4
+          tar xzf scraper.tar.gz -C scraper-v4 --strip-components=1
+
+      - name: Run code verification tests
+        working-directory: scraper-v4
+        run: |
+          # Run only the code tests (skip DB tests that need Management API)
+          python3 -c "
+          import sys
+          sys.path.insert(0, '.')
+          # Import and run code tests only
+          exec(open('tests/test_bug_fixes.py').read().split('# DATABASE')[0])
+          print(f'Code tests: {PASS} passed, {FAIL} failed')
+          sys.exit(1 if FAIL > 0 else 0)
+          "
+
+  verify-db:
+    name: Database Tests (6 tests)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run database verification
+        env:
+          SUPABASE_MGMT_TOKEN: ${{ secrets.SUPABASE_MGMT_TOKEN }}
+          SUPABASE_PROJECT_REF: mocerqjnksmhcjzxrewo
+        run: python3 scripts/fix_supabase.py --assess-only
+
+  bug-scan:
+    name: Bug Scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Clone and scan zonewise-scraper-v4
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_PAT }}
+        run: |
+          curl -sL -H "Authorization: token $GITHUB_TOKEN" \
+            "https://api.github.com/repos/breverdbidder/zonewise-scraper-v4/tarball/main" \
+            -o scraper.tar.gz
+          mkdir -p /tmp/scan
+          tar xzf scraper.tar.gz -C /tmp/scan --strip-components=1
+          python3 scripts/bug_hunter.py --path /tmp/scan

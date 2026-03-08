@@ -339,7 +339,7 @@ print("=" * 60)
 
 import urllib.request
 
-MGMT_TOKEN = "sbp_cbf04a175a130c466eddbe40a3f49b79aaec6214"
+MGMT_TOKEN = ""
 PROJECT_REF = "mocerqjnksmhcjzxrewo"
 
 

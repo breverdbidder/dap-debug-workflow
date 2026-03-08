@@ -23,7 +23,7 @@ import sys
 import argparse
 
 
-MGMT_TOKEN = os.getenv("SUPABASE_MGMT_TOKEN", "sbp_cbf04a175a130c466eddbe40a3f49b79aaec6214")
+MGMT_TOKEN = os.getenv("SUPABASE_MGMT_TOKEN", "")
 PROJECT_REF = os.getenv("SUPABASE_PROJECT_REF", "mocerqjnksmhcjzxrewo")
 API_BASE = f"https://api.supabase.com/v1/projects/{PROJECT_REF}/database/query"
 
